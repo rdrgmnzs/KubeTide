@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: example-database
+  annotations:
+    kubetide.io/schedule: "0 1 * * 0"               # Restart at 1:00 AM every Sunday
+    kubetide.io/timezone: "America/Los_Angeles"     # Using Los Angeles timezone
+spec:
+  serviceName: "example-database"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: example-database
+  template:
+    metadata:
+      labels:
+        app: example-database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "example-password"
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi

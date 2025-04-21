@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubetide-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubetide-controller
+  namespace: kubetide-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubetide-controller
+rules:
+  # Allow KubeTide to get, list and watch Deployments, StatefulSets, and DaemonSets
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  
+  # Allow access to the leader election and health check resources
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubetide-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubetide-controller
+subjects:
+  - kind: ServiceAccount
+    name: kubetide-controller
+    namespace: kubetide-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubetide-controller
+  namespace: kubetide-system
+  labels:
+    app: kubetide
+    control-plane: controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubetide
+      control-plane: controller
+  template:
+    metadata:
+      labels:
+        app: kubetide
+        control-plane: controller
+    spec:
+      serviceAccountName: kubetide-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+      containers:
+        - name: controller
+          image: ghcr.io/rdrgmnzs/kubetide:latest
+          args:
+            - "--metrics-bind-address=:8080"
+            - "--health-probe-bind-address=:8081"
+            - "--default-timezone=UTC"
+            - "--leader-elect=true"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          ports:
+            - containerPort: 8080
+              name: metrics
+              protocol: TCP
+            - containerPort: 8081
+              name: health
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubetide-controller-metrics
+  namespace: kubetide-system
+  labels:
+    app: kubetide
+    control-plane: controller
+spec:
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app: kubetide
+    control-plane: controller

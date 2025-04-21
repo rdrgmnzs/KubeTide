@@ -1,0 +1,24 @@
+{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "kubetide.fullname" . }}
+  labels:
+    {{- include "kubetide.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "kubetide.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: metrics
+      {{- if .Values.metrics.serviceMonitor.scrapeInterval }}
+      interval: {{ .Values.metrics.serviceMonitor.scrapeInterval }}
+      {{- end }}
+      path: /metrics
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+{{- end }}
