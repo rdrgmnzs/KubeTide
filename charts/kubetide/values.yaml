@@ -1,0 +1,103 @@
+# Default values for kubetide.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/rdrgmnzs/kubetide
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Default timezone for the controller
+timezone: "UTC"
+
+# Leader election configuration
+leaderElection:
+  enabled: true
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  fsGroup: 65532
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Pod nodeSelector
+nodeSelector: {}
+
+# Pod tolerations
+tolerations: []
+
+# Pod affinity settings
+affinity: {}
+
+# Priority class name
+priorityClassName: ""
+
+# Metrics configuration
+metrics:
+  # Enable prometheus metrics
+  enabled: true
+  # Service monitor for Prometheus Operator
+  serviceMonitor:
+    enabled: false
+    additionalLabels: {}
+    # scrapeInterval: 30s
+
+# Liveness and readiness probes
+probes:
+  # Liveness probe
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  # Readiness probe
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# RBAC configuration
+rbac:
+  # Create RBAC resources
+  create: true
+
+# Logging configuration
+logging:
+  # Log level (debug, info, warn, error)
+  level: info
+  # Enable development mode for logging (false for production)
+  development: false

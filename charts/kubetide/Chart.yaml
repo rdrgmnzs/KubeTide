@@ -1,0 +1,20 @@
+apiVersion: v2
+name: kubetide
+description: A Kubernetes controller for scheduled rollout restarts
+type: application
+version: 0.1.0
+appVersion: 0.1.0
+keywords:
+  - kubernetes
+  - controller
+  - scheduler
+  - restart
+  - cron
+maintainers:
+  - name: KubeTide Team
+    url: https://github.com/rdrgmnzs/kubetide
+home: https://github.com/rdrgmnzs/kubetide
+sources:
+  - https://github.com/rdrgmnzs/kubetide
+annotations:
+  artifacthub.io/license: Apache-2.0

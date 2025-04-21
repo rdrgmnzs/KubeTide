@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: example-logger
+  annotations:
+    kubetide.io/schedule: "15 4 1 * *"    # Restart at 4:15 AM on the 1st day of each month
+    kubetide.io/timezone: "Europe/London"  # Using London timezone
+spec:
+  selector:
+    matchLabels:
+      app: example-logger
+  template:
+    metadata:
+      labels:
+        app: example-logger
+    spec:
+      containers:
+      - name: fluentd
+        image: fluentd:v1.14
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
