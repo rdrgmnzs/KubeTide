@@ -3,6 +3,9 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /workspace
 
+# Install security scanner
+RUN go install github.com/securego/gosec/v2/cmd/gosec@latest
+
 # Copy Go module files and download dependencies
 COPY go.mod go.sum* ./
 RUN go mod download
@@ -17,8 +20,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -o kubetide cmd/kubetide/main.go
 
 # Run security scan
-RUN go install github.com/securego/gosec/v2/cmd/gosec@latest && \
-    gosec -quiet ./...
+RUN gosec -quiet ./...
 
 # Final stage
 FROM gcr.io/distroless/static:nonroot
