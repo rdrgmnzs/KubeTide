@@ -37,10 +37,7 @@ spec:
             - "--default-timezone={{ .Values.timezone }}"
             {{- if .Values.leaderElection.enabled }}
             - "--leader-elect=true"
-            {{- else }}
-            - "--leader-elect=false"
             {{- end }}
-            - "--v={{ .Values.logging.level | default "info" | replace "debug" "4" | replace "info" "2" | replace "warn" "1" | replace "error" "0" }}"
             {{- if .Values.logging.development }}
             - "--zap-devel=true"
             {{- end }}
