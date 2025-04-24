@@ -75,15 +75,38 @@ func (m *Manager) patchRestartAnnotation(ctx context.Context, obj client.Object)
 	// Create a patch with the kubectl.kubernetes.io/restartedAt annotation
 	patch := client.MergeFrom(obj.DeepCopyObject().(client.Object))
 
-	// Get existing annotations or initialize if nil
-	annotations := obj.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
+	// Get current timestamp
+	currentTime := time.Now().Format(time.RFC3339)
 
-	// Set the restart annotation with current timestamp
-	annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
-	obj.SetAnnotations(annotations)
+	// Handle different resource types
+	switch resource := obj.(type) {
+	case *appsv1.Deployment:
+		// Initialize pod template annotations if nil
+		if resource.Spec.Template.Annotations == nil {
+			resource.Spec.Template.Annotations = make(map[string]string)
+		}
+		// Add the restart annotation to pod template
+		resource.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = currentTime
+
+	case *appsv1.StatefulSet:
+		// Initialize pod template annotations if nil
+		if resource.Spec.Template.Annotations == nil {
+			resource.Spec.Template.Annotations = make(map[string]string)
+		}
+		// Add the restart annotation to pod template
+		resource.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = currentTime
+
+	case *appsv1.DaemonSet:
+		// Initialize pod template annotations if nil
+		if resource.Spec.Template.Annotations == nil {
+			resource.Spec.Template.Annotations = make(map[string]string)
+		}
+		// Add the restart annotation to pod template
+		resource.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = currentTime
+
+	default:
+		return fmt.Errorf("unsupported resource type: %T", obj)
+	}
 
 	// Apply the patch
 	if err := m.client.Patch(ctx, obj, patch); err != nil {

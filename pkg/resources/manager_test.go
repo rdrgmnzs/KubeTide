@@ -60,11 +60,11 @@ func TestRestartDeployment(t *testing.T) {
 	err := manager.RestartDeployment(ctx, namespacedName)
 	assert.NoError(t, err)
 
-	// Verify the restart annotation was added
+	// Verify the restart annotation was added to the pod template
 	updatedDeployment := &appsv1.Deployment{}
 	err = client.Get(ctx, namespacedName, updatedDeployment)
 	assert.NoError(t, err)
-	assert.Contains(t, updatedDeployment.Annotations, "kubectl.kubernetes.io/restartedAt")
+	assert.Contains(t, updatedDeployment.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
 }
 
 func TestRestartStatefulSet(t *testing.T) {
@@ -114,11 +114,11 @@ func TestRestartStatefulSet(t *testing.T) {
 	err := manager.RestartStatefulSet(ctx, namespacedName)
 	assert.NoError(t, err)
 
-	// Verify the restart annotation was added
+	// Verify the restart annotation was added to the pod template
 	updatedStatefulSet := &appsv1.StatefulSet{}
 	err = client.Get(ctx, namespacedName, updatedStatefulSet)
 	assert.NoError(t, err)
-	assert.Contains(t, updatedStatefulSet.Annotations, "kubectl.kubernetes.io/restartedAt")
+	assert.Contains(t, updatedStatefulSet.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
 }
 
 func TestRestartDaemonSet(t *testing.T) {
@@ -167,9 +167,9 @@ func TestRestartDaemonSet(t *testing.T) {
 	err := manager.RestartDaemonSet(ctx, namespacedName)
 	assert.NoError(t, err)
 
-	// Verify the restart annotation was added
+	// Verify the restart annotation was added to the pod template
 	updatedDaemonSet := &appsv1.DaemonSet{}
 	err = client.Get(ctx, namespacedName, updatedDaemonSet)
 	assert.NoError(t, err)
-	assert.Contains(t, updatedDaemonSet.Annotations, "kubectl.kubernetes.io/restartedAt")
+	assert.Contains(t, updatedDaemonSet.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
 }
