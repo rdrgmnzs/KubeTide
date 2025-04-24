@@ -61,7 +61,7 @@ jobs:
         run: go build -v ./...
         
       - name: Security scan
-        uses: securego/gosec@master
+        uses: securego/gosec@v2
         with:
           args: ./...
 
