@@ -16,6 +16,7 @@ type scheduledResource struct {
 	cronID         cron.EntryID
 	resourceType   string
 	namespacedName types.NamespacedName
+	cron           *cron.Cron
 }
 
 type Scheduler struct {
@@ -58,7 +59,8 @@ func (s *Scheduler) Schedule(
 
 	// If already scheduled, remove previous schedule
 	if existing, ok := s.resources[uniqueKey]; ok {
-		s.cron.Remove(existing.cronID)
+		existing.cron.Stop()
+		delete(s.resources, uniqueKey)
 	}
 
 	// Parse the schedule to validate it
@@ -67,9 +69,13 @@ func (s *Scheduler) Schedule(
 		return fmt.Errorf("invalid cron schedule '%s': %w", schedule, err)
 	}
 
-	// Schedule the actual job with our cron instance
-	cronID, err := s.cron.AddFunc(schedule, func() {
-		scheduledTime := time.Now()
+	// Create a new cron instance with the specific timezone
+	cronParser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+	resourceCron := cron.New(cron.WithParser(cronParser), cron.WithLocation(location))
+
+	// Schedule the actual job with the timezone-specific cron instance
+	cronID, err := resourceCron.AddFunc(schedule, func() {
+		scheduledTime := time.Now().In(location)
 		s.logger.Info("Executing scheduled restart",
 			"resourceKey", resourceKey,
 			"resourceType", resourceType,
@@ -85,10 +91,14 @@ func (s *Scheduler) Schedule(
 		return fmt.Errorf("failed to schedule cron job: %w", err)
 	}
 
+	// Start the cron instance
+	resourceCron.Start()
+
 	s.resources[uniqueKey] = scheduledResource{
 		cronID:         cronID,
 		resourceType:   resourceType,
 		namespacedName: namespacedName,
+		cron:           resourceCron,
 	}
 
 	s.logger.Info("Resource scheduled",
@@ -110,7 +120,7 @@ func (s *Scheduler) Remove(resourceType string, resourceKey string) {
 	uniqueKey := fmt.Sprintf("%s-%s", resourceType, resourceKey)
 
 	if existing, ok := s.resources[uniqueKey]; ok {
-		s.cron.Remove(existing.cronID)
+		existing.cron.Stop()
 		delete(s.resources, uniqueKey)
 
 		s.logger.Info("Resource schedule removed",
@@ -158,7 +168,7 @@ func (s *Scheduler) GetScheduleDetails(resourceType string, resourceKey string) 
 
 	uniqueKey := fmt.Sprintf("%s-%s", resourceType, resourceKey)
 	if resource, exists := s.resources[uniqueKey]; exists {
-		entry := s.cron.Entry(resource.cronID)
+		entry := resource.cron.Entry(resource.cronID)
 		return fmt.Sprintf(
 			"ResourceType: %s\nNamespace: %s\nName: %s\nNext Run: %v\nPrev Run: %v",
 			resource.resourceType,

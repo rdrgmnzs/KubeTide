@@ -74,7 +74,7 @@ type Reconciler struct {
 	scheme      *runtime.Scheme
 	scheduler   *scheduler.Scheduler
 	defaultTz   *time.Location
-	resourceMgr *resources.Manager
+	resourceMgr resources.ResourceManager
 }
 
 func NewReconciler(client client.Client, logger logr.Logger, scheme *runtime.Scheme, defaultTz *time.Location) *Reconciler {
