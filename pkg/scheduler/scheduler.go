@@ -41,6 +41,10 @@ func NewScheduler(processFunc ProcessResourceFunc, logger logr.Logger) *Schedule
 	}
 
 	scheduler.cron.Start()
+
+	// Start periodic status reporter
+	go scheduler.periodicStatusReporter()
+
 	return scheduler
 }
 
@@ -83,6 +87,7 @@ func (s *Scheduler) Schedule(
 			"name", namespacedName.Name,
 			"schedule", schedule,
 			"timezone", location.String(),
+			"executionTime", scheduledTime.Format(time.RFC3339),
 		)
 		s.processFunc(resourceType, namespacedName, scheduledTime)
 	})
@@ -101,6 +106,11 @@ func (s *Scheduler) Schedule(
 		cron:           resourceCron,
 	}
 
+	// Get the next scheduled time
+	entry := resourceCron.Entry(cronID)
+	nextRun := entry.Next
+	timeUntilNext := time.Until(nextRun)
+
 	s.logger.Info("Resource scheduled",
 		"resourceKey", uniqueKey,
 		"resourceType", resourceType,
@@ -108,6 +118,9 @@ func (s *Scheduler) Schedule(
 		"name", namespacedName.Name,
 		"schedule", schedule,
 		"timezone", location.String(),
+		"nextRun", nextRun.Format(time.RFC3339),
+		"timeUntilNext", timeUntilNext.String(),
+		"currentTime", time.Now().In(location).Format(time.RFC3339),
 	)
 
 	return nil
@@ -145,6 +158,11 @@ func (s *Scheduler) Stop() {
 	s.cron.Stop()
 }
 
+// LogStatus logs the current status of all scheduled resources (for debugging)
+func (s *Scheduler) LogStatus() {
+	s.logScheduledResourcesStatus()
+}
+
 // GetScheduledResources returns a map of all currently scheduled resources for debugging
 func (s *Scheduler) GetScheduledResources() map[string]string {
 	s.mutex.RLock()
@@ -179,4 +197,49 @@ func (s *Scheduler) GetScheduleDetails(resourceType string, resourceKey string) 
 		), true
 	}
 	return "", false
+}
+
+// periodicStatusReporter logs the status of all scheduled resources periodically
+func (s *Scheduler) periodicStatusReporter() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		s.logScheduledResourcesStatus()
+	}
+}
+
+// logScheduledResourcesStatus logs the current status of all scheduled resources
+func (s *Scheduler) logScheduledResourcesStatus() {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	if len(s.resources) == 0 {
+		s.logger.Info("No resources currently scheduled")
+		return
+	}
+
+	s.logger.Info("Scheduled resources status report", "totalResources", len(s.resources))
+
+	for key, resource := range s.resources {
+		entry := resource.cron.Entry(resource.cronID)
+		now := time.Now()
+		timeUntilNext := time.Until(entry.Next)
+
+		s.logger.Info("Resource schedule status",
+			"resourceKey", key,
+			"resourceType", resource.resourceType,
+			"namespace", resource.namespacedName.Namespace,
+			"name", resource.namespacedName.Name,
+			"nextRun", entry.Next.Format(time.RFC3339),
+			"timeUntilNext", timeUntilNext.String(),
+			"lastRun", func() string {
+				if entry.Prev.IsZero() {
+					return "never"
+				}
+				return entry.Prev.Format(time.RFC3339)
+			}(),
+			"currentTime", now.Format(time.RFC3339),
+		)
+	}
 }

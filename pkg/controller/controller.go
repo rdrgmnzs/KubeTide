@@ -214,6 +214,9 @@ func (r *Reconciler) handleResource(ctx context.Context, resourceType string, na
 		"namespace", namespacedName.Namespace,
 		"name", namespacedName.Name)
 
+	// Log current status of all scheduled resources for debugging
+	r.scheduler.LogStatus()
+
 	return ctrl.Result{}, nil
 }
 
