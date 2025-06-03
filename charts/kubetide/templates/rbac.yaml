@@ -15,6 +15,11 @@ rules:
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
+  
+  # Allow creating events for leader election and other operations
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
