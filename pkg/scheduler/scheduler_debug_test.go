@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -98,7 +97,7 @@ func TestMondayScheduleDebug(t *testing.T) {
 	executed := false
 	entryID, err := c.AddFunc(schedule, func() {
 		executed = true
-		fmt.Printf("CRON EXECUTED at %s\n", time.Now().In(location).Format(time.RFC3339))
+		t.Logf("CRON EXECUTED at %s", time.Now().In(location).Format(time.RFC3339))
 	})
 	require.NoError(t, err)
 
